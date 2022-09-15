@@ -3,7 +3,7 @@ from elasticsearch import Elasticsearch
 import os
 import logging
 
-tsv_file = 'segments.tsv'
+tsv_file = 'shards.tsv'
 
 es = Elasticsearch(
     "http://" + os.getenv('ELASTICSEARCH_HOSTS') + ":9200",
@@ -14,10 +14,10 @@ logging.basicConfig(format='%(message)s')
 logging.getLogger().setLevel(logging.INFO)
 logging.Formatter('%(asctime)s %(clientip)-15s %(user)-8s %(message)s')
 logging.getLogger('elastic_transport.transport').setLevel(logging.WARN)
-logger = logging.getLogger('cat_segments.py')
+logger = logging.getLogger('cat_shards.py')
 
 all_cols = []
-for line in es.cat.segments(help=True).splitlines():
+for line in es.cat.shards(help=True).splitlines():
     parts = line.split('|')
     all_cols.append({
         "title": parts[0].strip(),
@@ -31,7 +31,7 @@ for idx, col in enumerate(all_cols):
     harg+=col['title']
 
 # time option should be specified but it is not yet accepted. See elasticsearch-py#2066
-lines = es.cat.segments(h=harg, v=True, bytes='mb').splitlines()
+lines = es.cat.shards(h=harg, v=True, bytes='mb').splitlines()
 
 line0 = lines[0]
 last_char = 'x'
