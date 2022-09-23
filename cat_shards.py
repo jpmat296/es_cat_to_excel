@@ -1,37 +1,71 @@
 from elasticsearch import Elasticsearch
+import argparse
 
 import os
+import sys
 import logging
 
-tsv_file = 'shards.tsv'
-
-es = Elasticsearch(
-    "http://" + os.getenv('ELASTICSEARCH_HOSTS') + ":9200",
-    http_auth=(os.getenv('ELASTICSEARCH_USERNAME'), os.getenv('ELASTICSEARCH_PASSWORD'))
-)
+type='shards'
+tsv_file = f"{type}.tsv"
 
 logging.basicConfig(format='%(message)s')
 logging.getLogger().setLevel(logging.INFO)
 logging.Formatter('%(asctime)s %(clientip)-15s %(user)-8s %(message)s')
 logging.getLogger('elastic_transport.transport').setLevel(logging.WARN)
-logger = logging.getLogger('cat_shards.py')
+logger = logging.getLogger(f"cat_{type}.py")
 
-all_cols = []
-for line in es.cat.shards(help=True).splitlines():
-    parts = line.split('|')
-    all_cols.append({
-        "title": parts[0].strip(),
-        "desc": parts[2].strip()
-    })
+parser = argparse.ArgumentParser(description=f"Use Elasticsearch CAT APIs to dump {type} info in TSV file.")
+parser.add_argument('--es-url',
+                    type=str,
+                    help='Elasticsearch URL')
+parser.add_argument('--cert',
+                    type=str,
+                    help='Client certificate file to connect to Elasticsearch')
+parser.add_argument('--key',
+                    type=str,
+                    help='Private key file for client certificate (option --cert)')
+parser.add_argument('--ca',
+                    type=str,
+                    help='CA certificate file for client certificate (option --cert)')
+parser.add_argument('--input-text-file',
+                    type=argparse.FileType('r', encoding='UTF-8'),
+                    help='Don\'t connect to Elasticsearch but use utf-8 content of file INPUT_TEXT_FILE instead')
+args = parser.parse_args()
 
-harg = ''
-for idx, col in enumerate(all_cols):
-    if idx > 0:
-        harg+=','
-    harg+=col['title']
+if not args.input_text_file and not args.es_url:
+    logging.error(f"Error: either --es-url or --input-text-file is required")
+    parser.print_help()
+    sys.exit(1)
 
-# time option should be specified but it is not yet accepted. See elasticsearch-py#2066
-lines = es.cat.shards(h=harg, v=True, bytes='mb').splitlines()
+if not args.input_text_file:
+
+    es = Elasticsearch(
+        hosts=args.es_url,
+        ca_certs=args.ca,
+        client_cert=args.cert,
+        client_key=args.key
+    )
+
+    all_cols = []
+    for line in es.cat.shards(help=True).splitlines():
+        parts = line.split('|')
+        all_cols.append({
+            "title": parts[0].strip(),
+            "desc": parts[2].strip()
+        })
+
+    harg = ''
+    for idx, col in enumerate(all_cols):
+        if idx > 0:
+            harg+=','
+        harg+=col['title']
+
+    # time option should be specified but it is not yet accepted. See elasticsearch-py#2066
+    lines = es.cat.shards(h=harg, v=True, bytes='mb').splitlines()
+
+else:
+
+    lines = args.input_text_file.readlines()
 
 line0 = lines[0]
 last_char = 'x'
@@ -64,3 +98,5 @@ with open(tsv_file, 'w', encoding = 'utf-8') as f:
                 val = line[seps[index-1]:seps[index]]
                 f.write(val.strip())
                 f.write('\t')
+
+logging.info(f"File {tsv_file} created")
