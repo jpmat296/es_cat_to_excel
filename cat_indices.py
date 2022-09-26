@@ -61,6 +61,6 @@ with open(tsv_file, 'w', encoding = 'utf-8') as f:
                 f.write(val.strip())
                 f.write('\n')
             else:
-                val = line[seps[index]:seps[index + 1]]
+                val = line[seps[index-1]:seps[index]]
                 f.write(val.strip())
                 f.write('\t')
