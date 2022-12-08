@@ -60,9 +60,7 @@ if not args.input_text_file:
             harg+=','
         harg+=col['title']
 
-    # time option should be specified but it is not yet accepted. See elasticsearch-py#2066
-    # Ditto for include_unloaded_segments
-    lines = es.cat.nodes(h=harg, v=True, bytes='mb').splitlines()
+    lines = es.cat.nodes(h=harg, v=True, bytes='mb', time='s').splitlines()
 
 else:
 

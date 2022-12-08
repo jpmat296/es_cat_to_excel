@@ -60,7 +60,6 @@ if not args.input_text_file:
             harg+=','
         harg+=col['title']
 
-    # time option should be specified but it is not yet accepted. See elasticsearch-py#2066
     lines = es.cat.segments(h=harg, v=True, bytes='mb').splitlines()
 
 else:
