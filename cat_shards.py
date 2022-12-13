@@ -32,6 +32,10 @@ parser.add_argument('--input-text-file',
                     help='Don\'t connect to Elasticsearch but use utf-8 content of file INPUT_TEXT_FILE instead')
 args = parser.parse_args()
 
+def hello(name):
+    message = "Hello " + name
+    print("bonjour")
+
 if not args.input_text_file and not args.es_url:
     logging.error(f"Error: either --es-url or --input-text-file is required")
     parser.print_help()
